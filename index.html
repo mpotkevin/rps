@@ -75,7 +75,7 @@
     </div>
 
     <!-- 頂部資訊 -->
-    <header class="w-full max-w-6xl px-4 py-2 flex justify-between items-center bg-white shadow-sm z-50">
+    <header class="w-full max-w-6xl px-4 py-2 flex justify-between items-center bg-white shadow-sm z-50 shrink-0">
         <div class="flex flex-col">
             <h1 class="text-lg font-bold text-green-700 leading-tight text-nowrap">活力腦猜拳</h1>
             <div id="game-status" class="text-[10px] text-gray-400">認知功能訓練</div>
@@ -108,7 +108,7 @@
         <div id="start-screen" class="text-center bg-white p-8 rounded-[2.5rem] shadow-xl max-w-sm w-full mx-auto">
             <div class="mb-4 text-7xl">✊✋✌️</div>
             <h2 class="text-3xl font-black mb-2 text-gray-800">活力腦猜拳</h2>
-            <p class="text-gray-400 mb-8 font-medium">訓練大腦反應，延緩老化</p>
+            <p class="text-gray-400 mb-8 font-medium">每天大腦運動，延緩老化</p>
             <button id="start-game-btn" class="w-full py-4 bg-green-600 text-white text-2xl font-bold rounded-2xl hover:bg-green-700 shadow-lg transition-all active:scale-95">
                 開始活動
             </button>
@@ -145,7 +145,7 @@
     </main>
 
     <!-- 下方作答按鈕 -->
-    <footer id="controls" class="hidden w-full max-w-md p-2 grid grid-cols-3 gap-3 z-40 mb-2 shrink-0 border-t border-transparent">
+    <footer id="controls" class="hidden w-full max-w-md p-2 grid grid-cols-3 gap-3 z-40 mb-2 shrink-0">
         <button data-move="rock" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-3 shadow-md active:border-b-0 active:translate-y-1 transition-all">
             <span class="text-3xl">✊</span>
             <span class="text-xs font-bold mt-1">石頭</span>
@@ -166,7 +166,7 @@
 
     <!-- 設定視窗 -->
     <div id="settings-modal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white w-full max-sm:w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-black text-gray-800">活動設定</h3>
                 <button id="close-settings" class="text-gray-400 text-3xl leading-none">&times;</button>
@@ -177,9 +177,9 @@
                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">活動模式</label>
                     <select id="setting-mode" class="custom-select w-full p-4 border-2 border-gray-100 rounded-xl bg-gray-50 focus:border-green-500 outline-none font-bold text-gray-700">
                         <option value="single">單手猜拳</option>
-                        <option value="double">雙手猜拳 (左右呈現)</option>
-                        <option value="limbs">上下肢猜拳 (垂直大方塊)</option>
-                        <option value="sequence">連續猜拳 (智慧排列)</option>
+                        <option value="double">雙手猜拳</option>
+                        <option value="limbs">上下肢猜拳</option>
+                        <option value="sequence">連續猜拳</option>
                     </select>
                 </div>
 
@@ -431,14 +431,13 @@
             state.currentIndex = 0;
             dom.instruction.innerText = TARGET_MAP[state.target];
 
-            // 佈局邏輯調整
             dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative overflow-hidden";
             if (state.mode === 'double') {
                 dom.qContainer.classList.add('flex-row', 'justify-around', 'px-6');
             } else if (state.mode === 'limbs') {
                 dom.qContainer.classList.add('flex-col', 'gap-4');
             } else if (state.mode === 'sequence') {
-                dom.qContainer.classList.add('flex-wrap', 'justify-center', 'gap-4', 'p-2');
+                dom.qContainer.classList.add('flex-wrap', 'justify-center', 'gap-4', 'p-4');
             }
 
             let count = 1;
@@ -472,37 +471,43 @@
         function renderQuestion(q, index) {
             const card = document.createElement('div');
             card.id = `q-${index}`;
-            card.className = "flex flex-col items-center justify-center bg-white border-2 border-gray-100 shadow-xl transition-all duration-300 relative overflow-hidden";
+            card.className = "flex flex-col items-center justify-between bg-white border-2 border-gray-100 shadow-xl transition-all duration-300 relative";
             
             let emojiSize = "text-6xl md:text-8xl";
 
             if (state.mode === 'double') {
-                card.classList.add('w-[45%]', 'aspect-square', 'rounded-[2rem]');
-                emojiSize = "text-7xl md:text-[10rem]";
+                card.classList.add('w-[45%]', 'md:w-[32vh]', 'max-h-[85%]', 'aspect-square', 'rounded-[2rem]', 'p-4');
+                emojiSize = "text-[15vh]";
             } else if (state.mode === 'limbs') {
-                card.classList.add('w-[35vh]', 'max-w-[70%]', 'aspect-square', 'rounded-2xl');
-                emojiSize = "text-[12vh] md:text-[18vh]";
+                card.classList.add('w-[32vh]', 'max-w-[70%]', 'aspect-square', 'rounded-2xl', 'p-4');
+                emojiSize = "text-[14vh]";
                 if (index === 1) card.classList.add('border-blue-300', 'bg-blue-50/20');
             } else if (state.mode === 'sequence') {
-                card.classList.add('w-[28%]','md:w-[18%]', 'aspect-square', 'rounded-3xl');
-                emojiSize = "text-5xl md:text-[8rem]";
+                // 加大連續猜拳的寬度
+                card.classList.add('w-[30%]', 'md:w-[24vh]', 'aspect-square', 'rounded-3xl', 'p-3');
+                emojiSize = "text-[8vh] md:text-[12vh]";
             } else if (state.mode === 'single') {
-                card.classList.add('w-[80%]', 'md:w-[40%]', 'aspect-square', 'rounded-[3rem]');
-                emojiSize = state.isAutoplay ? "text-[15rem] md:text-[22rem]" : "text-[12rem] md:text-[18rem]";
+                card.classList.add('w-[80vw]', 'md:w-[60vh]', 'max-h-[60vh]', 'aspect-square', 'rounded-[3rem]', 'p-6');
+                emojiSize = state.isAutoplay ? "text-[35vh]" : "text-[28vh]";
             }
 
             let labelText = "";
             if (state.mode === 'double') labelText = index === 0 ? "左手" : "右手";
             else if (state.mode === 'limbs') labelText = index === 0 ? "上肢" : "下肢";
 
-            const labelHtml = labelText ? `<div class="absolute top-1 md:top-2 px-3 py-0.5 bg-gray-100 rounded-full text-[10px] md:text-xs font-black text-gray-400">${labelText}</div>` : '';
-            const numberBadge = (state.mode === 'sequence') ? `<div class="absolute top-0 left-0 w-6 h-6 md:w-8 md:h-8 bg-orange-500 text-white rounded-br-2xl flex items-center justify-center font-black text-xs shadow-sm">${index + 1}</div>` : '';
-            const hintHtml = state.showHints ? `<div class="absolute bottom-1 md:bottom-2 text-[10px] font-bold text-gray-300 border-t border-gray-50 px-2 pt-1">目標:${MOVES[q.answer].emoji}</div>` : '';
+            const labelHtml = labelText ? `<div class="w-full text-center py-1 bg-gray-100 rounded-full text-[10px] md:text-xs font-black text-gray-400 mb-1 shrink-0">${labelText}</div>` : '';
+            
+            // 優化後的圓形數字標記
+            const numberBadge = (state.mode === 'sequence') ? `<div class="absolute -top-2 -left-2 w-8 h-8 md:w-10 md:h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black text-sm md:text-lg shadow-md z-20 border-2 border-white">${index + 1}</div>` : '';
+            
+            const hintHtml = state.showHints ? `<div class="w-full text-center mt-auto text-[10px] font-bold text-gray-300 border-t border-gray-50 pt-1 shrink-0">目標:${MOVES[q.answer].emoji}</div>` : '<div class="h-4 shrink-0"></div>';
 
             card.innerHTML = `
                 ${numberBadge}
                 ${labelHtml}
-                <div class="${emojiSize} leading-none select-none">${MOVES[q.move].emoji}</div>
+                <div class="flex-grow flex items-center justify-center w-full min-h-0 overflow-hidden">
+                    <div class="${emojiSize} leading-none select-none">${MOVES[q.move].emoji}</div>
+                </div>
                 ${hintHtml}
             `;
             
