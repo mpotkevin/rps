@@ -2,23 +2,63 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>活力腦：長輩猜拳認知挑戰</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        :root {
+            --vh: 1vh;
+        }
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
             touch-action: manipulation;
             background-color: #f0fdf4;
-            overflow-x: hidden;
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+            overflow: hidden;
+            display: flex;
+            flex-col: column;
             user-select: none;
         }
-        /* 進度條平滑動畫 */
-        .progress-bar-fill {
-            transition: width 0.1s linear;
+
+        /* 強化版閃爍回饋 */
+        .correct-flash { animation: flash-green 0.4s ease-out; }
+        .wrong-flash { animation: flash-red 0.4s ease-out; }
+        
+        @keyframes flash-green {
+            0%, 100% { background-color: #f0fdf4; }
+            50% { background-color: rgba(34, 197, 94, 0.4); }
         }
-        /* 答錯震動動畫 */
+        @keyframes flash-red {
+            0%, 100% { background-color: #f0fdf4; }
+            50% { background-color: rgba(239, 68, 68, 0.4); }
+        }
+
+        /* 答對的圓圈提示 */
+        #feedback-overlay {
+            pointer-events: none;
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+        }
+
+        /* 下拉選單自訂箭頭 */
+        .custom-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.5em;
+        }
+
+        .progress-bar-fill { transition: width 0.1s linear; }
+
         .animate-shake {
             animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
@@ -28,207 +68,174 @@
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
-        /* 閃爍效果 */
-        .correct-flash { animation: flash-green 0.5s; }
-        .wrong-flash { animation: flash-red 0.5s; }
-        @keyframes flash-green {
-            0%, 100% { background-color: #f0fdf4; }
-            50% { background-color: rgba(34, 197, 94, 0.2); }
-        }
-        @keyframes flash-red {
-            0%, 100% { background-color: #f0fdf4; }
-            50% { background-color: rgba(239, 68, 68, 0.2); }
-        }
-        /* 暫停遮罩 */
-        #pause-overlay {
-            backdrop-filter: blur(8px);
-            background-color: rgba(255, 255, 255, 0.8);
-        }
-        /* 捲軸美化 */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center">
+<body class="flex flex-col items-center">
 
-    <!-- 頂部資訊欄 -->
-    <header id="game-header" class="w-full max-w-4xl px-4 py-4 flex justify-between items-center bg-white shadow-sm sticky top-0 z-50">
+    <!-- 答對/答錯視覺回饋圖層 -->
+    <div id="feedback-overlay">
+        <div id="feedback-icon" class="text-[15rem] font-black opacity-80"></div>
+    </div>
+
+    <!-- 頂部資訊 -->
+    <header class="w-full max-w-4xl px-4 py-2 flex justify-between items-center bg-white shadow-sm z-50">
         <div class="flex flex-col">
-            <h1 class="text-xl md:text-2xl font-bold text-green-700">活力腦猜拳</h1>
-            <div id="game-status" class="text-xs font-medium text-gray-500">認知功能訓練</div>
+            <h1 class="text-lg font-bold text-green-700">活力腦猜拳</h1>
+            <div id="game-status" class="text-[10px] text-gray-400">職能治療認知訓練</div>
         </div>
         
-        <div id="game-controls-top" class="hidden flex items-center gap-3">
-            <button id="pause-btn" class="px-4 py-2 bg-amber-100 text-amber-700 rounded-2xl font-bold hover:bg-amber-200 transition">
-                ⏸ 暫停
-            </button>
-            <button id="stop-btn" class="px-4 py-2 bg-red-100 text-red-700 rounded-2xl font-bold hover:bg-red-200 transition">
-                ⏹ 結束
-            </button>
+        <div id="game-controls-top" class="hidden flex items-center gap-2">
+            <button id="pause-btn" class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-bold text-xs hover:bg-amber-200 transition">⏸ 暫停</button>
+            <button id="stop-btn" class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-bold text-xs hover:bg-red-200 transition">⏹ 結束</button>
         </div>
 
-        <div class="flex items-center gap-4">
-            <div class="text-right">
-                <div class="text-xl md:text-2xl font-bold text-blue-600" id="timer-display">--:--</div>
-                <div class="text-xs text-gray-400">得分: <span id="score-display" class="font-bold">0</span></div>
+        <div class="flex items-center gap-3 text-right">
+            <div>
+                <div class="text-xl font-bold text-blue-600 leading-none" id="timer-display">--:--</div>
+                <div class="text-[10px] text-gray-400">分數: <span id="score-display">0</span></div>
             </div>
             <button id="settings-btn" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
         </div>
     </header>
 
-    <!-- 進度條 -->
-    <div id="autoplay-progress" class="w-full h-2 bg-gray-100 hidden">
+    <div id="autoplay-progress" class="w-full h-1.5 bg-gray-100 hidden">
         <div id="autoplay-progress-fill" class="h-full bg-blue-500 progress-bar-fill" style="width: 0%"></div>
     </div>
 
-    <!-- 遊戲主要區域 -->
-    <main id="game-area" class="flex-grow w-full max-w-6xl flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <!-- 遊戲主區 -->
+    <main id="game-area" class="flex-grow w-full max-w-6xl flex flex-col items-center justify-center p-2 relative">
         
         <!-- 開始畫面 -->
-        <div id="start-screen" class="text-center bg-white p-10 md:p-16 rounded-[3rem] shadow-2xl max-w-lg w-full transition-all">
-            <div class="mb-8 text-7xl md:text-8xl">✊✋✌️</div>
-            <h2 class="text-4xl font-bold mb-4 text-gray-800">活力腦猜拳</h2>
-            <p class="text-lg text-gray-500 mb-10">準備好開始大腦運動了嗎？</p>
-            <button id="start-game-btn" class="w-full py-5 bg-green-600 text-white text-3xl font-bold rounded-3xl hover:bg-green-700 shadow-xl transform active:scale-95 transition-all">
+        <div id="start-screen" class="text-center bg-white p-8 rounded-[2.5rem] shadow-xl max-w-sm w-full mx-auto">
+            <div class="mb-4 text-7xl">✊✋✌️</div>
+            <h2 class="text-3xl font-black mb-2 text-gray-800">活力腦猜拳</h2>
+            <p class="text-gray-400 mb-8 font-medium">每天三分鐘，腦力不退步</p>
+            <button id="start-game-btn" class="w-full py-4 bg-green-600 text-white text-2xl font-bold rounded-2xl hover:bg-green-700 shadow-lg active:scale-95 transition-all">
                 開始活動
             </button>
         </div>
 
-        <!-- 遊戲畫布 -->
-        <div id="stage" class="hidden w-full h-full flex flex-col items-center justify-start gap-4 md:gap-8 py-2 relative">
-            
-            <!-- 暫停遮罩 -->
-            <div id="pause-overlay" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl">
-                <div class="text-8xl mb-6">⏸</div>
-                <div class="text-4xl font-bold text-amber-700 mb-8">暫停中</div>
-                <button id="resume-btn" class="px-12 py-5 bg-amber-500 text-white text-2xl font-bold rounded-3xl shadow-xl hover:bg-amber-600">
-                    繼續活動
-                </button>
+        <!-- 遊戲舞台 -->
+        <div id="stage" class="hidden w-full h-full flex flex-col items-center justify-start py-2 relative">
+            <div id="pause-overlay" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center rounded-3xl">
+                <div class="text-6xl mb-4">⏸</div>
+                <div class="text-3xl font-bold text-amber-700 mb-6">暫停中</div>
+                <button id="resume-btn" class="px-10 py-4 bg-amber-500 text-white text-xl font-bold rounded-2xl shadow-lg">繼續活動</button>
             </div>
 
-            <!-- 資訊橫幅：題數與指令 -->
-            <div class="flex flex-col md:flex-row items-center gap-4 z-10">
-                <div id="question-index-label" class="text-xl font-bold text-blue-600 bg-blue-50 px-6 py-2 rounded-full border-2 border-blue-200">
-                    第 1 題
-                </div>
-                <div id="instruction-banner" class="px-8 py-2 bg-yellow-100 border-2 border-yellow-400 rounded-full text-2xl md:text-3xl font-bold text-yellow-800 animate-bounce">
-                    請猜贏！
-                </div>
+            <!-- 抬頭資訊 -->
+            <div class="flex items-center gap-2 mb-2 z-10">
+                <div id="question-index-label" class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">第 1 回合</div>
+                <div id="instruction-banner" class="px-5 py-1 bg-yellow-100 border-2 border-yellow-400 rounded-full text-xl md:text-2xl font-black text-yellow-800">請猜贏！</div>
             </div>
 
-            <!-- 題目容器：動態控制佈局 -->
-            <div id="question-container" class="w-full flex-grow flex items-center justify-center relative transition-all duration-500">
-                <!-- 動態題目 -->
+            <!-- 題目容器 -->
+            <div id="question-container" class="w-full flex-grow flex items-center justify-center relative">
+                <!-- 動態題目內容 -->
             </div>
         </div>
 
         <!-- 結算畫面 -->
-        <div id="result-screen" class="hidden text-center bg-white p-12 rounded-[3rem] shadow-2xl max-w-md w-full">
-            <h2 class="text-4xl font-bold mb-4 text-blue-600">活動完成！</h2>
-            <div class="text-8xl my-8">🎊</div>
-            <div class="text-2xl text-gray-500 mb-2">本次累計得分</div>
-            <div class="text-7xl font-black text-gray-800 mb-10" id="final-score">0</div>
-            <button id="restart-btn" class="w-full py-5 bg-blue-600 text-white text-2xl font-bold rounded-3xl hover:bg-blue-700 shadow-xl transition-all">
-                再次挑戰
-            </button>
+        <div id="result-screen" class="hidden text-center bg-white p-8 rounded-[2.5rem] shadow-xl max-w-xs w-full mx-auto">
+            <h2 class="text-3xl font-bold text-blue-600 mb-4">活動完成！</h2>
+            <div class="text-7xl mb-4">🎊</div>
+            <div class="text-xl text-gray-400">本次得分</div>
+            <div class="text-6xl font-black text-gray-800 mb-8" id="final-score">0</div>
+            <button id="restart-btn" class="w-full py-4 bg-blue-600 text-white text-2xl font-bold rounded-2xl shadow-lg">再玩一次</button>
         </div>
     </main>
 
-    <!-- 使用者操作區 (手動模式) - 縮小版按鈕 -->
-    <footer id="controls" class="hidden w-full max-w-xl p-3 grid grid-cols-3 gap-3 sticky bottom-4 z-40 bg-white/90 backdrop-blur-md rounded-[2rem] shadow-lg border border-white/50">
-        <button data-move="rock" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
-            <span class="text-3xl md:text-4xl mb-1">✊</span>
-            <span class="text-sm font-bold">石頭</span>
+    <!-- 下方作答按鈕 (手動模式) -->
+    <footer id="controls" class="hidden w-full max-w-md p-2 grid grid-cols-3 gap-2 z-40 mb-2">
+        <button data-move="rock" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-2 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
+            <span class="text-2xl md:text-3xl">✊</span>
+            <span class="text-xs font-bold mt-1">石頭</span>
         </button>
-        <button data-move="scissors" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
-            <span class="text-3xl md:text-4xl mb-1">✌️</span>
-            <span class="text-sm font-bold">剪刀</span>
+        <button data-move="scissors" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-2 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
+            <span class="text-2xl md:text-3xl">✌️</span>
+            <span class="text-xs font-bold mt-1">剪刀</span>
         </button>
-        <button data-move="paper" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
-            <span class="text-3xl md:text-4xl mb-1">✋</span>
-            <span class="text-sm font-bold">布</span>
+        <button data-move="paper" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-2 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
+            <span class="text-2xl md:text-3xl">✋</span>
+            <span class="text-xs font-bold mt-1">布</span>
         </button>
     </footer>
 
-    <!-- 設計者資訊 -->
-    <footer class="w-full py-8 text-center text-gray-400 text-sm">
-        設計：<a href="https://www.facebook.com/mpotkevin" target="_blank" class="text-blue-400 hover:text-blue-500 font-medium underline underline-offset-4">職能治療師 - 鄭凱文</a>
-    </footer>
+    <!-- 作者資訊 -->
+    <div id="designer-info" class="w-full py-2 text-center text-[10px] text-gray-400">
+        設計：<a href="https://www.facebook.com/mpotkevin" target="_blank" class="text-blue-300 font-medium underline underline-offset-2">職能治療師 - 鄭凱文</a>
+    </div>
 
-    <!-- 設定彈窗 -->
-    <div id="settings-modal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-8">
-                <h3 class="text-2xl font-bold text-gray-800">活動參數設定</h3>
-                <button id="close-settings" class="text-gray-400 hover:text-gray-600 text-4xl leading-none">&times;</button>
+    <!-- 設定視窗 -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-black text-gray-800">活動設定</h3>
+                <button id="close-settings" class="text-gray-400 text-3xl">&times;</button>
             </div>
             
-            <div class="space-y-8">
+            <div class="space-y-6">
                 <!-- 模式選擇 -->
                 <div>
-                    <label class="block text-sm font-bold text-gray-500 mb-3 ml-1 uppercase">活動模式</label>
-                    <select id="setting-mode" class="w-full p-4 border-2 border-gray-100 rounded-2xl bg-gray-50 focus:border-green-500 outline-none font-bold text-gray-700 appearance-none cursor-pointer">
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">活動模式</label>
+                    <select id="setting-mode" class="custom-select w-full p-4 border-2 border-gray-100 rounded-xl bg-gray-50 focus:border-green-500 outline-none font-bold text-gray-700">
                         <option value="single">單手猜拳</option>
-                        <option value="double">雙手猜拳 (左右並行)</option>
-                        <option value="limbs">上下肢猜拳 (上與下)</option>
+                        <option value="double">雙手猜拳</option>
+                        <option value="limbs">上下肢猜拳</option>
                         <option value="sequence">一整排連續猜拳</option>
-                        <option value="scatter">隨機分佈順序猜拳 (1->N)</option>
+                        <option value="scatter">隨機分佈順序猜拳 (1-5)</option>
                     </select>
                 </div>
 
-                <!-- 自動播放配置 -->
-                <div class="bg-blue-50 p-6 rounded-3xl space-y-5 border border-blue-100 shadow-inner">
+                <!-- 自動播放 -->
+                <div class="bg-blue-50 p-4 rounded-2xl space-y-4 border border-blue-100">
                     <div class="flex items-center justify-between">
-                        <span class="text-base font-bold text-blue-800">自動連續播放模式</span>
+                        <span class="text-sm font-bold text-blue-800">自動播放模式</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="setting-autoplay" class="sr-only peer">
-                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                     </div>
                     
-                    <div id="autoplay-configs" class="hidden space-y-5 pt-4 border-t border-blue-200">
+                    <div id="autoplay-configs" class="hidden space-y-4 pt-4 border-t border-blue-200">
                         <div>
-                            <label class="block text-sm font-bold text-blue-700 mb-2">每題顯示：<span id="val-per-item" class="text-blue-600">5</span> 秒</label>
-                            <input type="range" id="setting-item-duration" min="1" max="10" step="1" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <label class="block text-[10px] font-bold text-blue-700 mb-1">每題停留秒數：<span id="val-per-item">5</span>s</label>
+                            <input type="range" id="setting-item-duration" min="1" max="10" step="1" value="5" class="w-full h-1.5 bg-blue-200 rounded-lg accent-blue-600">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-blue-700 mb-2">總播放題數：<span id="val-total-items" class="text-blue-600">10</span> 題</label>
-                            <input type="range" id="setting-total-items" min="5" max="50" step="5" value="10" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <label class="block text-[10px] font-bold text-blue-700 mb-1">播放總題數：<span id="val-total-items">10</span>題</label>
+                            <input type="range" id="setting-total-items" min="5" max="30" step="5" value="10" class="w-full h-1.5 bg-blue-200 rounded-lg accent-blue-600">
                         </div>
                     </div>
                 </div>
 
                 <div id="manual-configs">
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-500 mb-3 ml-1 uppercase">目標任務</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            <button data-target="win" class="target-opt p-3 border-2 border-green-500 bg-green-50 rounded-2xl text-green-700 font-bold">要猜贏</button>
-                            <button data-target="draw" class="target-opt p-3 border-2 border-gray-100 rounded-2xl text-gray-400 font-bold">要平手</button>
-                            <button data-target="lose" class="target-opt p-3 border-2 border-gray-100 rounded-2xl text-gray-400 font-bold">要猜輸</button>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">任務目標</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button data-target="win" class="target-opt p-2 border-2 border-green-500 bg-green-50 rounded-xl text-green-700 font-bold text-sm">要猜贏</button>
+                            <button data-target="draw" class="target-opt p-2 border-2 border-gray-100 rounded-xl text-gray-400 font-bold text-sm">要平手</button>
+                            <button data-target="lose" class="target-opt p-2 border-2 border-gray-100 rounded-xl text-gray-400 font-bold text-sm">要猜輸</button>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-500 mb-3 ml-1 uppercase">挑戰時間 (秒)</label>
-                        <input type="range" id="setting-time" min="10" max="120" step="10" value="60" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600">
-                        <div class="flex justify-between text-xs text-gray-400 mt-2 px-1">
-                            <span>10s</span>
-                            <span id="time-val-display" class="font-bold text-green-600">60秒</span>
-                            <span>120s</span>
-                        </div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">挑戰時間 (秒)</label>
+                        <input type="range" id="setting-time" min="10" max="120" step="10" value="60" class="w-full h-1.5 bg-gray-200 rounded-lg accent-green-600">
+                        <div class="flex justify-between text-[10px] text-gray-400 mt-1"><span class="font-bold text-green-600" id="time-val-display">60s</span><span>120s</span></div>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between p-2">
-                    <span class="text-sm font-bold text-gray-600">顯示參考答案 (提示)</span>
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl">
+                    <span class="text-xs font-bold text-gray-500">顯示參考答案</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="setting-hints" class="sr-only peer">
-                        <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
+                        <div class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                     </label>
                 </div>
 
-                <button id="save-settings" class="w-full py-5 bg-green-600 text-white text-xl font-bold rounded-2xl hover:bg-green-700 shadow-lg transition-all">儲存並返回</button>
+                <button id="save-settings" class="w-full py-4 bg-green-600 text-white text-lg font-bold rounded-xl shadow-lg transition-all active:scale-95">完成並儲存</button>
             </div>
         </div>
     </div>
@@ -280,8 +287,18 @@
             stopBtn: document.getElementById('stop-btn'),
             resumeBtn: document.getElementById('resume-btn'),
             gameControlsTop: document.getElementById('game-controls-top'),
-            qIndexLabel: document.getElementById('question-index-label')
+            qIndexLabel: document.getElementById('question-index-label'),
+            feedbackOverlay: document.getElementById('feedback-overlay'),
+            feedbackIcon: document.getElementById('feedback-icon'),
+            designerInfo: document.getElementById('designer-info')
         };
+
+        function setVH() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        window.addEventListener('resize', setVH);
+        setVH();
 
         function init() {
             document.getElementById('start-game-btn').onclick = startGame;
@@ -310,7 +327,7 @@
             };
             document.getElementById('setting-time').oninput = (e) => {
                 state.timeLeft = parseInt(e.target.value);
-                document.getElementById('time-val-display').innerText = state.timeLeft + '秒';
+                document.getElementById('time-val-display').innerText = state.timeLeft + 's';
             };
 
             document.getElementById('setting-mode').onchange = (e) => state.mode = e.target.value;
@@ -358,12 +375,12 @@
             dom.stage.classList.remove('hidden');
             dom.pauseOverlay.classList.add('hidden');
             dom.gameControlsTop.classList.remove('hidden');
-            dom.pauseBtn.innerText = "⏸ 暫停";
+            dom.designerInfo.classList.add('hidden');
 
             if (state.isAutoplay) {
                 dom.controls.classList.add('hidden');
                 dom.autoplayProgress.classList.remove('hidden');
-                dom.timerDisplay.innerText = "自動播放";
+                dom.timerDisplay.innerText = "自動模式";
                 nextRound();
                 state.lastFrameTime = performance.now();
                 requestAnimationFrame(updateAutoplay);
@@ -390,22 +407,16 @@
 
         function updateAutoplay(timestamp) {
             if (!state.isPlaying || !state.isAutoplay || state.isPaused) return;
-
             const deltaTime = timestamp - state.lastFrameTime;
             state.lastFrameTime = timestamp;
             state.autoplayElapsed += deltaTime;
-
             const durationMs = state.itemDuration * 1000;
             const percent = Math.min((state.autoplayElapsed / durationMs) * 100, 100);
             dom.autoplayProgressFill.style.width = percent + '%';
-
             if (state.autoplayElapsed >= durationMs) {
                 state.autoplayElapsed = 0;
-                if (state.currentRoundCount >= state.totalItems) {
-                    endGame();
-                    return;
-                }
-                nextRound();
+                if (state.currentRoundCount >= state.totalItems) endGame();
+                else nextRound();
             }
             requestAnimationFrame(updateAutoplay);
         }
@@ -418,45 +429,42 @@
             dom.autoplayProgress.classList.add('hidden');
             dom.gameControlsTop.classList.add('hidden');
             dom.resultScreen.classList.remove('hidden');
+            dom.designerInfo.classList.remove('hidden');
             dom.finalScore.innerText = state.score;
         }
 
         function nextRound() {
             if (!state.isPlaying) return;
-            
             dom.qContainer.innerHTML = '';
             state.currentQuestions = [];
             state.currentIndex = 0;
             dom.instruction.innerText = TARGET_MAP[state.target];
 
-            // 排版邏輯調整
-            dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative transition-all duration-500";
+            // 動態排版佈局
+            dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative";
             if (state.mode === 'limbs') {
-                dom.qContainer.classList.add('flex-col', 'gap-4');
+                dom.qContainer.classList.add('flex-col', 'gap-2');
             } else if (state.mode === 'sequence') {
-                dom.qContainer.classList.add('flex-nowrap', 'overflow-x-auto', 'gap-4', 'px-6');
+                dom.qContainer.classList.add('flex-nowrap', 'overflow-hidden', 'gap-2', 'px-2');
+            } else if (state.mode === 'scatter') {
+                // 不額外加 class，靠子元素 absolute
             } else {
-                dom.qContainer.classList.add('flex-wrap', 'gap-8');
+                dom.qContainer.classList.add('flex-wrap', 'gap-4');
             }
 
             let count = 1;
             if (state.mode === 'double' || state.mode === 'limbs') count = 2;
             if (state.mode === 'sequence') count = 5;
-            if (state.mode === 'scatter') count = Math.floor(Math.random() * 2) + 4;
+            if (state.mode === 'scatter') count = 5;
 
             const moveKeys = Object.keys(MOVES);
             const gridPositions = [];
             if (state.mode === 'scatter') {
-                // 安全網格：確保在畫面中央 15%-75% 之間，不疊加
+                // 限制在安全網格：左5-75, 頂15-70
                 const rows = 3;
-                const cols = 3;
+                const cols = 2;
                 for(let r=0; r<rows; r++) {
-                    for(let c=0; c<cols; c++) {
-                        gridPositions.push({ 
-                            x: 15 + (c * 25) + (Math.random() * 5), 
-                            y: 10 + (r * 25) + (Math.random() * 5)
-                        });
-                    }
+                    for(let c=0; c<cols; c++) gridPositions.push({ x: 10 + (c * 40), y: 15 + (r * 25) });
                 }
                 shuffleArray(gridPositions);
             }
@@ -475,11 +483,7 @@
             }
 
             state.currentRoundCount++;
-            if (state.isAutoplay) {
-                dom.qIndexLabel.innerText = `第 ${state.currentRoundCount} 題 / 共 ${state.totalItems} 題`;
-            } else {
-                dom.qIndexLabel.innerText = `第 ${state.currentRoundCount} 回合`;
-            }
+            dom.qIndexLabel.innerText = state.isAutoplay ? `第 ${state.currentRoundCount} 題 / 共 ${state.totalItems} 題` : `第 ${state.currentRoundCount} 回合`;
         }
 
         function getCorrectAnswer(cpuMove, target) {
@@ -491,56 +495,48 @@
         function renderQuestion(q, index) {
             const card = document.createElement('div');
             card.id = `q-${index}`;
+            card.className = "flex flex-col items-center justify-center bg-white border-2 border-gray-100 rounded-3xl shadow-lg transition-all duration-300 relative overflow-hidden";
             
-            // 基礎卡片樣式 - 針對不同模式調整 Padding
-            card.className = "flex flex-col items-center bg-white border-4 border-gray-100 rounded-[2.5rem] shadow-xl transition-all duration-500 relative";
-            
-            // 手動模式或一般模式的 Padding
-            card.classList.add('p-6', 'md:p-8');
+            // 基礎尺寸設定
+            let padding = "p-4";
+            let emojiSize = "text-6xl md:text-8xl";
 
-            // 電腦版自動播放時特別放大
-            if (state.isAutoplay) {
-                if (state.mode === 'single' || state.mode === 'double') {
-                    card.classList.add('md:p-16', 'md:scale-125');
-                } else if (state.mode === 'sequence') {
-                    card.classList.add('md:p-10', 'md:min-w-[200px]');
-                }
-            }
-
-            if (state.mode === 'scatter' && q.pos) {
-                card.classList.add('absolute');
+            if (state.mode === 'limbs') {
+                card.classList.add('w-[80%]', 'max-h-[35%]');
+                padding = "p-2";
+                emojiSize = "text-5xl md:text-7xl";
+            } else if (state.mode === 'scatter') {
+                card.classList.add('absolute', 'w-24', 'h-24', 'md:w-32', 'md:h-32');
                 card.style.left = `${q.pos.x}%`;
                 card.style.top = `${q.pos.y}%`;
+                padding = "p-1";
+                emojiSize = "text-4xl md:text-6xl";
+            } else if (state.mode === 'sequence') {
+                card.classList.add('w-16', 'h-24', 'md:w-32', 'md:h-48');
+                emojiSize = "text-3xl md:text-5xl";
+            } else if (state.mode === 'single' || state.mode === 'double') {
+                card.classList.add('w-[85%]', 'max-h-[80%]', 'md:w-[50%]');
+                emojiSize = state.isAutoplay ? "text-[10rem] md:text-[15rem]" : "text-8xl md:text-[10rem]";
+                padding = "p-6";
             }
+
+            card.classList.add(padding);
 
             let labelText = "";
-            if (state.mode === 'double') {
-                labelText = index === 0 ? "左手" : "右手";
-            } else if (state.mode === 'limbs') {
+            if (state.mode === 'double') labelText = index === 0 ? "左手" : "右手";
+            else if (state.mode === 'limbs') {
                 labelText = index === 0 ? "上肢" : "下肢";
-                if (index === 1) card.classList.add('border-blue-400', 'bg-blue-50/30');
+                if (index === 1) card.classList.add('border-blue-200', 'bg-blue-50/20');
             }
 
-            const labelHtml = labelText 
-                ? `<div class="text-xl font-black text-gray-400 mb-6 px-6 py-2 bg-gray-100 rounded-full">${labelText}</div>` 
-                : '';
-
-            const numberBadge = (state.mode === 'sequence' || state.mode === 'scatter') 
-                ? `<div class="absolute -top-6 -left-6 w-14 h-14 bg-orange-500 text-white rounded-full flex items-center justify-center font-black text-3xl border-4 border-white shadow-lg">${index + 1}</div>` 
-                : '';
-
-            const hintHtml = state.showHints 
-                ? `<div class="mt-8 pt-4 border-t-2 border-dashed border-gray-200 text-sm font-bold text-gray-400 uppercase tracking-widest">目標：${MOVES[q.answer].emoji}</div>` 
-                : '';
-
-            // 手勢大小依模式動態調整 - 進一步放大
-            let emojiSizeClass = 'text-8xl md:text-9xl';
-            if (state.mode === 'single' && state.isAutoplay) emojiSizeClass = 'text-[12rem]';
+            const labelHtml = labelText ? `<div class="text-xs font-black text-gray-300 mb-1 bg-gray-50 px-2 rounded-md">${labelText}</div>` : '';
+            const numberBadge = (state.mode === 'sequence' || state.mode === 'scatter') ? `<div class="absolute top-0 left-0 w-6 h-6 bg-orange-500 text-white rounded-br-xl flex items-center justify-center font-bold text-xs">${index + 1}</div>` : '';
+            const hintHtml = state.showHints ? `<div class="mt-2 text-[10px] font-bold text-gray-300 border-t border-gray-50 pt-1">目標:${MOVES[q.answer].emoji}</div>` : '';
 
             card.innerHTML = `
                 ${numberBadge}
                 ${labelHtml}
-                <div class="${emojiSizeClass} transition-transform duration-300 hover:scale-105">${MOVES[q.move].emoji}</div>
+                <div class="${emojiSize} leading-none">${MOVES[q.move].emoji}</div>
                 ${hintHtml}
             `;
             
@@ -552,46 +548,50 @@
             state.currentQuestions.forEach((_, i) => {
                 const el = document.getElementById(`q-${i}`);
                 if (!el) return;
-
                 if (state.isAutoplay) {
                     el.classList.remove('opacity-40', 'border-green-500', 'ring-4');
-                    el.classList.add('opacity-100', 'scale-100');
+                    el.classList.add('opacity-100');
                 } else {
                     if (i === state.currentIndex) {
-                        el.classList.add('border-green-500', 'scale-110', 'z-20', 'ring-8', 'ring-green-100');
+                        el.classList.add('border-green-500', 'ring-4', 'ring-green-100', 'z-10');
                         el.classList.remove('opacity-40');
                     } else {
                         el.classList.add('opacity-40');
-                        el.classList.remove('border-green-500', 'scale-110', 'ring-8');
+                        el.classList.remove('border-green-500', 'ring-4');
                     }
                 }
             });
         }
 
+        function showFeedback(type) {
+            dom.feedbackIcon.innerText = type === 'correct' ? '⭕' : '❌';
+            dom.feedbackIcon.className = type === 'correct' ? 'text-green-500 font-black' : 'text-red-500 font-black';
+            dom.feedbackOverlay.style.display = 'block';
+            document.body.classList.add(type === 'correct' ? 'correct-flash' : 'wrong-flash');
+            
+            setTimeout(() => {
+                dom.feedbackOverlay.style.display = 'none';
+                document.body.classList.remove('correct-flash', 'wrong-flash');
+            }, 350);
+        }
+
         function handleInput(userMove) {
             if (!state.isPlaying || state.isAutoplay || state.isPaused) return;
-
             const currentQ = state.currentQuestions[state.currentIndex];
             const isCorrect = userMove === currentQ.answer;
-            const targetEl = document.getElementById(`q-${state.currentIndex}`);
 
             if (isCorrect) {
                 state.score += 10;
                 dom.scoreDisplay.innerText = state.score;
-                document.body.classList.add('correct-flash');
-                setTimeout(() => document.body.classList.remove('correct-flash'), 500);
-
+                showFeedback('correct');
                 state.currentIndex++;
-                if (state.currentIndex >= state.currentQuestions.length) {
-                    setTimeout(nextRound, 300);
-                } else {
-                    updateFocus();
-                }
+                if (state.currentIndex >= state.currentQuestions.length) setTimeout(nextRound, 300);
+                else updateFocus();
             } else {
                 state.score = Math.max(0, state.score - 5);
                 dom.scoreDisplay.innerText = state.score;
-                document.body.classList.add('wrong-flash');
-                setTimeout(() => document.body.classList.remove('wrong-flash'), 500);
+                showFeedback('wrong');
+                const targetEl = document.getElementById(`q-${state.currentIndex}`);
                 if (targetEl) {
                     targetEl.classList.add('animate-shake');
                     setTimeout(() => targetEl.classList.remove('animate-shake'), 500);
