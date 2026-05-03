@@ -20,7 +20,7 @@
             height: calc(var(--vh, 1vh) * 100);
             overflow: hidden;
             display: flex;
-            flex-col: column;
+            flex-direction: column;
             user-select: none;
         }
 
@@ -37,7 +37,6 @@
             50% { background-color: rgba(239, 68, 68, 0.4); }
         }
 
-        /* 答對的圓圈提示 */
         #feedback-overlay {
             pointer-events: none;
             display: none;
@@ -48,7 +47,6 @@
             z-index: 100;
         }
 
-        /* 下拉選單自訂箭頭 */
         .custom-select {
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -72,16 +70,15 @@
 </head>
 <body class="flex flex-col items-center">
 
-    <!-- 答對/答錯視覺回饋圖層 -->
     <div id="feedback-overlay">
         <div id="feedback-icon" class="text-[15rem] font-black opacity-80"></div>
     </div>
 
     <!-- 頂部資訊 -->
-    <header class="w-full max-w-4xl px-4 py-2 flex justify-between items-center bg-white shadow-sm z-50">
+    <header class="w-full max-w-6xl px-4 py-2 flex justify-between items-center bg-white shadow-sm z-50">
         <div class="flex flex-col">
-            <h1 class="text-lg font-bold text-green-700">活力腦猜拳</h1>
-            <div id="game-status" class="text-[10px] text-gray-400">職能治療認知訓練</div>
+            <h1 class="text-lg font-bold text-green-700 leading-tight text-nowrap">活力腦猜拳</h1>
+            <div id="game-status" class="text-[10px] text-gray-400">認知功能訓練</div>
         </div>
         
         <div id="game-controls-top" class="hidden flex items-center gap-2">
@@ -100,25 +97,25 @@
         </div>
     </header>
 
-    <div id="autoplay-progress" class="w-full h-1.5 bg-gray-100 hidden">
+    <div id="autoplay-progress" class="w-full h-1.5 bg-gray-100 hidden shrink-0">
         <div id="autoplay-progress-fill" class="h-full bg-blue-500 progress-bar-fill" style="width: 0%"></div>
     </div>
 
     <!-- 遊戲主區 -->
-    <main id="game-area" class="flex-grow w-full max-w-6xl flex flex-col items-center justify-center p-2 relative">
+    <main id="game-area" class="flex-grow w-full max-w-6xl flex flex-col items-center justify-center p-2 relative overflow-hidden">
         
         <!-- 開始畫面 -->
         <div id="start-screen" class="text-center bg-white p-8 rounded-[2.5rem] shadow-xl max-w-sm w-full mx-auto">
             <div class="mb-4 text-7xl">✊✋✌️</div>
             <h2 class="text-3xl font-black mb-2 text-gray-800">活力腦猜拳</h2>
-            <p class="text-gray-400 mb-8 font-medium">每天三分鐘，腦力不退步</p>
-            <button id="start-game-btn" class="w-full py-4 bg-green-600 text-white text-2xl font-bold rounded-2xl hover:bg-green-700 shadow-lg active:scale-95 transition-all">
+            <p class="text-gray-400 mb-8 font-medium">訓練大腦反應，延緩老化</p>
+            <button id="start-game-btn" class="w-full py-4 bg-green-600 text-white text-2xl font-bold rounded-2xl hover:bg-green-700 shadow-lg transition-all active:scale-95">
                 開始活動
             </button>
         </div>
 
         <!-- 遊戲舞台 -->
-        <div id="stage" class="hidden w-full h-full flex flex-col items-center justify-start py-2 relative">
+        <div id="stage" class="hidden w-full h-full flex flex-col items-center justify-start py-2 relative overflow-hidden">
             <div id="pause-overlay" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center rounded-3xl">
                 <div class="text-6xl mb-4">⏸</div>
                 <div class="text-3xl font-bold text-amber-700 mb-6">暫停中</div>
@@ -126,14 +123,14 @@
             </div>
 
             <!-- 抬頭資訊 -->
-            <div class="flex items-center gap-2 mb-2 z-10">
+            <div id="stage-banner" class="flex items-center gap-2 mb-2 z-10 shrink-0">
                 <div id="question-index-label" class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">第 1 回合</div>
                 <div id="instruction-banner" class="px-5 py-1 bg-yellow-100 border-2 border-yellow-400 rounded-full text-xl md:text-2xl font-black text-yellow-800">請猜贏！</div>
             </div>
 
             <!-- 題目容器 -->
-            <div id="question-container" class="w-full flex-grow flex items-center justify-center relative">
-                <!-- 動態題目內容 -->
+            <div id="question-container" class="w-full flex-grow flex items-center justify-center relative overflow-hidden">
+                <!-- 動態內容 -->
             </div>
         </div>
 
@@ -143,28 +140,27 @@
             <div class="text-7xl mb-4">🎊</div>
             <div class="text-xl text-gray-400">本次得分</div>
             <div class="text-6xl font-black text-gray-800 mb-8" id="final-score">0</div>
-            <button id="restart-btn" class="w-full py-4 bg-blue-600 text-white text-2xl font-bold rounded-2xl shadow-lg">再玩一次</button>
+            <button id="restart-btn" class="w-full py-4 bg-blue-600 text-white text-2xl font-bold rounded-2xl shadow-lg">再試一次</button>
         </div>
     </main>
 
-    <!-- 下方作答按鈕 (手動模式) -->
-    <footer id="controls" class="hidden w-full max-w-md p-2 grid grid-cols-3 gap-2 z-40 mb-2">
-        <button data-move="rock" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-2 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
-            <span class="text-2xl md:text-3xl">✊</span>
+    <!-- 下方作答按鈕 -->
+    <footer id="controls" class="hidden w-full max-w-md p-2 grid grid-cols-3 gap-3 z-40 mb-2 shrink-0 border-t border-transparent">
+        <button data-move="rock" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-3 shadow-md active:border-b-0 active:translate-y-1 transition-all">
+            <span class="text-3xl">✊</span>
             <span class="text-xs font-bold mt-1">石頭</span>
         </button>
-        <button data-move="scissors" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-2 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
-            <span class="text-2xl md:text-3xl">✌️</span>
+        <button data-move="scissors" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-3 shadow-md active:border-b-0 active:translate-y-1 transition-all">
+            <span class="text-3xl">✌️</span>
             <span class="text-xs font-bold mt-1">剪刀</span>
         </button>
-        <button data-move="paper" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-2 shadow-sm active:border-b-0 active:translate-y-1 transition-all">
-            <span class="text-2xl md:text-3xl">✋</span>
+        <button data-move="paper" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-4 border-gray-200 rounded-2xl py-3 shadow-md active:border-b-0 active:translate-y-1 transition-all">
+            <span class="text-3xl">✋</span>
             <span class="text-xs font-bold mt-1">布</span>
         </button>
     </footer>
 
-    <!-- 作者資訊 -->
-    <div id="designer-info" class="w-full py-2 text-center text-[10px] text-gray-400">
+    <div id="designer-info" class="w-full py-2 text-center text-[10px] text-gray-400 shrink-0">
         設計：<a href="https://www.facebook.com/mpotkevin" target="_blank" class="text-blue-300 font-medium underline underline-offset-2">職能治療師 - 鄭凱文</a>
     </div>
 
@@ -173,24 +169,21 @@
         <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-black text-gray-800">活動設定</h3>
-                <button id="close-settings" class="text-gray-400 text-3xl">&times;</button>
+                <button id="close-settings" class="text-gray-400 text-3xl leading-none">&times;</button>
             </div>
             
             <div class="space-y-6">
-                <!-- 模式選擇 -->
                 <div>
                     <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">活動模式</label>
                     <select id="setting-mode" class="custom-select w-full p-4 border-2 border-gray-100 rounded-xl bg-gray-50 focus:border-green-500 outline-none font-bold text-gray-700">
                         <option value="single">單手猜拳</option>
-                        <option value="double">雙手猜拳</option>
-                        <option value="limbs">上下肢猜拳</option>
-                        <option value="sequence">一整排連續猜拳</option>
-                        <option value="scatter">隨機分佈順序猜拳 (1-5)</option>
+                        <option value="double">雙手猜拳 (左右呈現)</option>
+                        <option value="limbs">上下肢猜拳 (垂直大方塊)</option>
+                        <option value="sequence">連續猜拳 (智慧排列)</option>
                     </select>
                 </div>
 
-                <!-- 自動播放 -->
-                <div class="bg-blue-50 p-4 rounded-2xl space-y-4 border border-blue-100">
+                <div class="bg-blue-50 p-4 rounded-2xl space-y-4 border border-blue-100 shadow-inner">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-blue-800">自動播放模式</span>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -201,7 +194,7 @@
                     
                     <div id="autoplay-configs" class="hidden space-y-4 pt-4 border-t border-blue-200">
                         <div>
-                            <label class="block text-[10px] font-bold text-blue-700 mb-1">每題停留秒數：<span id="val-per-item">5</span>s</label>
+                            <label class="block text-[10px] font-bold text-blue-700 mb-1">停留秒數：<span id="val-per-item">5</span>s</label>
                             <input type="range" id="setting-item-duration" min="1" max="10" step="1" value="5" class="w-full h-1.5 bg-blue-200 rounded-lg accent-blue-600">
                         </div>
                         <div>
@@ -235,7 +228,7 @@
                     </label>
                 </div>
 
-                <button id="save-settings" class="w-full py-4 bg-green-600 text-white text-lg font-bold rounded-xl shadow-lg transition-all active:scale-95">完成並儲存</button>
+                <button id="save-settings" class="w-full py-4 bg-green-600 text-white text-lg font-bold rounded-xl shadow-lg active:scale-95 transition-all">儲存並應用</button>
             </div>
         </div>
     </div>
@@ -354,7 +347,6 @@
             state.isPaused = !state.isPaused;
             dom.pauseOverlay.classList.toggle('hidden', !state.isPaused);
             dom.pauseBtn.innerText = state.isPaused ? "▶ 繼續" : "⏸ 暫停";
-            
             if (!state.isPaused && state.isAutoplay) {
                 state.lastFrameTime = performance.now();
                 requestAnimationFrame(updateAutoplay);
@@ -368,7 +360,6 @@
             state.currentIndex = 0;
             state.currentRoundCount = 0;
             state.autoplayElapsed = 0;
-            
             dom.scoreDisplay.innerText = '0';
             dom.startScreen.classList.add('hidden');
             dom.resultScreen.classList.add('hidden');
@@ -440,34 +431,21 @@
             state.currentIndex = 0;
             dom.instruction.innerText = TARGET_MAP[state.target];
 
-            // 動態排版佈局
-            dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative";
-            if (state.mode === 'limbs') {
-                dom.qContainer.classList.add('flex-col', 'gap-2');
+            // 佈局邏輯調整
+            dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative overflow-hidden";
+            if (state.mode === 'double') {
+                dom.qContainer.classList.add('flex-row', 'justify-around', 'px-6');
+            } else if (state.mode === 'limbs') {
+                dom.qContainer.classList.add('flex-col', 'gap-4');
             } else if (state.mode === 'sequence') {
-                dom.qContainer.classList.add('flex-nowrap', 'overflow-hidden', 'gap-2', 'px-2');
-            } else if (state.mode === 'scatter') {
-                // 不額外加 class，靠子元素 absolute
-            } else {
-                dom.qContainer.classList.add('flex-wrap', 'gap-4');
+                dom.qContainer.classList.add('flex-wrap', 'justify-center', 'gap-4', 'p-2');
             }
 
             let count = 1;
             if (state.mode === 'double' || state.mode === 'limbs') count = 2;
-            if (state.mode === 'sequence') count = 5;
-            if (state.mode === 'scatter') count = 5;
+            else if (state.mode === 'sequence') count = 5;
 
             const moveKeys = Object.keys(MOVES);
-            const gridPositions = [];
-            if (state.mode === 'scatter') {
-                // 限制在安全網格：左5-75, 頂15-70
-                const rows = 3;
-                const cols = 2;
-                for(let r=0; r<rows; r++) {
-                    for(let c=0; c<cols; c++) gridPositions.push({ x: 10 + (c * 40), y: 15 + (r * 25) });
-                }
-                shuffleArray(gridPositions);
-            }
 
             for (let i = 0; i < count; i++) {
                 const randomMove = moveKeys[Math.floor(Math.random() * moveKeys.length)];
@@ -475,8 +453,7 @@
                     id: i,
                     move: randomMove,
                     answer: getCorrectAnswer(randomMove, state.target),
-                    isLimb: state.mode === 'limbs' ? (i === 1) : false,
-                    pos: state.mode === 'scatter' ? gridPositions.pop() : null
+                    isLimb: state.mode === 'limbs' ? (i === 1) : false
                 };
                 state.currentQuestions.push(q);
                 renderQuestion(q, i);
@@ -495,48 +472,37 @@
         function renderQuestion(q, index) {
             const card = document.createElement('div');
             card.id = `q-${index}`;
-            card.className = "flex flex-col items-center justify-center bg-white border-2 border-gray-100 rounded-3xl shadow-lg transition-all duration-300 relative overflow-hidden";
+            card.className = "flex flex-col items-center justify-center bg-white border-2 border-gray-100 shadow-xl transition-all duration-300 relative overflow-hidden";
             
-            // 基礎尺寸設定
-            let padding = "p-4";
             let emojiSize = "text-6xl md:text-8xl";
 
-            if (state.mode === 'limbs') {
-                card.classList.add('w-[80%]', 'max-h-[35%]');
-                padding = "p-2";
-                emojiSize = "text-5xl md:text-7xl";
-            } else if (state.mode === 'scatter') {
-                card.classList.add('absolute', 'w-24', 'h-24', 'md:w-32', 'md:h-32');
-                card.style.left = `${q.pos.x}%`;
-                card.style.top = `${q.pos.y}%`;
-                padding = "p-1";
-                emojiSize = "text-4xl md:text-6xl";
+            if (state.mode === 'double') {
+                card.classList.add('w-[45%]', 'aspect-square', 'rounded-[2rem]');
+                emojiSize = "text-7xl md:text-[10rem]";
+            } else if (state.mode === 'limbs') {
+                card.classList.add('w-[35vh]', 'max-w-[70%]', 'aspect-square', 'rounded-2xl');
+                emojiSize = "text-[12vh] md:text-[18vh]";
+                if (index === 1) card.classList.add('border-blue-300', 'bg-blue-50/20');
             } else if (state.mode === 'sequence') {
-                card.classList.add('w-16', 'h-24', 'md:w-32', 'md:h-48');
-                emojiSize = "text-3xl md:text-5xl";
-            } else if (state.mode === 'single' || state.mode === 'double') {
-                card.classList.add('w-[85%]', 'max-h-[80%]', 'md:w-[50%]');
-                emojiSize = state.isAutoplay ? "text-[10rem] md:text-[15rem]" : "text-8xl md:text-[10rem]";
-                padding = "p-6";
+                card.classList.add('w-[28%]','md:w-[18%]', 'aspect-square', 'rounded-3xl');
+                emojiSize = "text-5xl md:text-[8rem]";
+            } else if (state.mode === 'single') {
+                card.classList.add('w-[80%]', 'md:w-[40%]', 'aspect-square', 'rounded-[3rem]');
+                emojiSize = state.isAutoplay ? "text-[15rem] md:text-[22rem]" : "text-[12rem] md:text-[18rem]";
             }
-
-            card.classList.add(padding);
 
             let labelText = "";
             if (state.mode === 'double') labelText = index === 0 ? "左手" : "右手";
-            else if (state.mode === 'limbs') {
-                labelText = index === 0 ? "上肢" : "下肢";
-                if (index === 1) card.classList.add('border-blue-200', 'bg-blue-50/20');
-            }
+            else if (state.mode === 'limbs') labelText = index === 0 ? "上肢" : "下肢";
 
-            const labelHtml = labelText ? `<div class="text-xs font-black text-gray-300 mb-1 bg-gray-50 px-2 rounded-md">${labelText}</div>` : '';
-            const numberBadge = (state.mode === 'sequence' || state.mode === 'scatter') ? `<div class="absolute top-0 left-0 w-6 h-6 bg-orange-500 text-white rounded-br-xl flex items-center justify-center font-bold text-xs">${index + 1}</div>` : '';
-            const hintHtml = state.showHints ? `<div class="mt-2 text-[10px] font-bold text-gray-300 border-t border-gray-50 pt-1">目標:${MOVES[q.answer].emoji}</div>` : '';
+            const labelHtml = labelText ? `<div class="absolute top-1 md:top-2 px-3 py-0.5 bg-gray-100 rounded-full text-[10px] md:text-xs font-black text-gray-400">${labelText}</div>` : '';
+            const numberBadge = (state.mode === 'sequence') ? `<div class="absolute top-0 left-0 w-6 h-6 md:w-8 md:h-8 bg-orange-500 text-white rounded-br-2xl flex items-center justify-center font-black text-xs shadow-sm">${index + 1}</div>` : '';
+            const hintHtml = state.showHints ? `<div class="absolute bottom-1 md:bottom-2 text-[10px] font-bold text-gray-300 border-t border-gray-50 px-2 pt-1">目標:${MOVES[q.answer].emoji}</div>` : '';
 
             card.innerHTML = `
                 ${numberBadge}
                 ${labelHtml}
-                <div class="${emojiSize} leading-none">${MOVES[q.move].emoji}</div>
+                <div class="${emojiSize} leading-none select-none">${MOVES[q.move].emoji}</div>
                 ${hintHtml}
             `;
             
@@ -549,15 +515,15 @@
                 const el = document.getElementById(`q-${i}`);
                 if (!el) return;
                 if (state.isAutoplay) {
-                    el.classList.remove('opacity-40', 'border-green-500', 'ring-4');
+                    el.classList.remove('opacity-40', 'border-green-500', 'ring-8');
                     el.classList.add('opacity-100');
                 } else {
                     if (i === state.currentIndex) {
-                        el.classList.add('border-green-500', 'ring-4', 'ring-green-100', 'z-10');
+                        el.classList.add('border-green-500', 'ring-8', 'ring-green-100', 'z-10');
                         el.classList.remove('opacity-40');
                     } else {
                         el.classList.add('opacity-40');
-                        el.classList.remove('border-green-500', 'ring-4');
+                        el.classList.remove('border-green-500', 'ring-8');
                     }
                 }
             });
@@ -568,7 +534,6 @@
             dom.feedbackIcon.className = type === 'correct' ? 'text-green-500 font-black' : 'text-red-500 font-black';
             dom.feedbackOverlay.style.display = 'block';
             document.body.classList.add(type === 'correct' ? 'correct-flash' : 'wrong-flash');
-            
             setTimeout(() => {
                 dom.feedbackOverlay.style.display = 'none';
                 document.body.classList.remove('correct-flash', 'wrong-flash');
