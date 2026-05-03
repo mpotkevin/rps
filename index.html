@@ -108,7 +108,7 @@
         <div id="start-screen" class="text-center bg-white p-8 rounded-[2.5rem] shadow-xl max-w-sm w-full mx-auto">
             <div class="mb-4 text-7xl">✊✋✌️</div>
             <h2 class="text-3xl font-black mb-2 text-gray-800">活力腦猜拳</h2>
-            <p class="text-gray-400 mb-8 font-medium">每天大腦運動，延緩老化</p>
+            <p class="text-gray-400 mb-8 font-medium">訓練大腦反應，延緩老化</p>
             <button id="start-game-btn" class="w-full py-4 bg-green-600 text-white text-2xl font-bold rounded-2xl hover:bg-green-700 shadow-lg transition-all active:scale-95">
                 開始活動
             </button>
@@ -431,13 +431,14 @@
             state.currentIndex = 0;
             dom.instruction.innerText = TARGET_MAP[state.target];
 
-            dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative overflow-hidden";
+            // 調整容器內邊距，確保懸浮標籤不被切到
+            dom.qContainer.className = "w-full flex-grow flex items-center justify-center relative p-4";
             if (state.mode === 'double') {
-                dom.qContainer.classList.add('flex-row', 'justify-around', 'px-6');
+                dom.qContainer.classList.add('flex-row', 'justify-around', 'px-6', 'gap-2');
             } else if (state.mode === 'limbs') {
-                dom.qContainer.classList.add('flex-col', 'gap-4');
+                dom.qContainer.classList.add('flex-col', 'justify-center', 'gap-4');
             } else if (state.mode === 'sequence') {
-                dom.qContainer.classList.add('flex-wrap', 'justify-center', 'gap-4', 'p-4');
+                dom.qContainer.classList.add('flex-wrap', 'justify-center', 'gap-6', 'p-6');
             }
 
             let count = 1;
@@ -471,21 +472,22 @@
         function renderQuestion(q, index) {
             const card = document.createElement('div');
             card.id = `q-${index}`;
+            // 移除 overflow-hidden 確保懸浮標籤可見
             card.className = "flex flex-col items-center justify-between bg-white border-2 border-gray-100 shadow-xl transition-all duration-300 relative";
             
-            let emojiSize = "text-6xl md:text-8xl";
+            let emojiSize = "text-6xl";
 
             if (state.mode === 'double') {
-                card.classList.add('w-[45%]', 'md:w-[32vh]', 'max-h-[85%]', 'aspect-square', 'rounded-[2rem]', 'p-4');
-                emojiSize = "text-[15vh]";
+                card.classList.add('w-[46vw]', 'md:w-[40vh]', 'max-h-[80%]', 'aspect-square', 'rounded-[2rem]', 'p-4');
+                emojiSize = "text-[20vh]";
             } else if (state.mode === 'limbs') {
-                card.classList.add('w-[32vh]', 'max-w-[70%]', 'aspect-square', 'rounded-2xl', 'p-4');
+                card.classList.add('w-[28vh]', 'max-w-[70%]', 'aspect-square', 'rounded-2xl', 'p-2');
                 emojiSize = "text-[14vh]";
                 if (index === 1) card.classList.add('border-blue-300', 'bg-blue-50/20');
             } else if (state.mode === 'sequence') {
-                // 加大連續猜拳的寬度
+                // 加大連續猜拳比例
                 card.classList.add('w-[30%]', 'md:w-[24vh]', 'aspect-square', 'rounded-3xl', 'p-3');
-                emojiSize = "text-[8vh] md:text-[12vh]";
+                emojiSize = "text-[10vh] md:text-[14vh]";
             } else if (state.mode === 'single') {
                 card.classList.add('w-[80vw]', 'md:w-[60vh]', 'max-h-[60vh]', 'aspect-square', 'rounded-[3rem]', 'p-6');
                 emojiSize = state.isAutoplay ? "text-[35vh]" : "text-[28vh]";
@@ -497,15 +499,15 @@
 
             const labelHtml = labelText ? `<div class="w-full text-center py-1 bg-gray-100 rounded-full text-[10px] md:text-xs font-black text-gray-400 mb-1 shrink-0">${labelText}</div>` : '';
             
-            // 優化後的圓形數字標記
-            const numberBadge = (state.mode === 'sequence') ? `<div class="absolute -top-2 -left-2 w-8 h-8 md:w-10 md:h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black text-sm md:text-lg shadow-md z-20 border-2 border-white">${index + 1}</div>` : '';
+            // 修正：向外位移並增加 z-index 與 shadow，移除溢出隱藏
+            const numberBadge = (state.mode === 'sequence') ? `<div class="absolute -top-3 -left-3 w-8 h-8 md:w-10 md:h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black text-sm md:text-lg shadow-lg z-30 border-2 border-white">${index + 1}</div>` : '';
             
             const hintHtml = state.showHints ? `<div class="w-full text-center mt-auto text-[10px] font-bold text-gray-300 border-t border-gray-50 pt-1 shrink-0">目標:${MOVES[q.answer].emoji}</div>` : '<div class="h-4 shrink-0"></div>';
 
             card.innerHTML = `
                 ${numberBadge}
                 ${labelHtml}
-                <div class="flex-grow flex items-center justify-center w-full min-h-0 overflow-hidden">
+                <div class="flex-grow flex items-center justify-center w-full min-h-0">
                     <div class="${emojiSize} leading-none select-none">${MOVES[q.move].emoji}</div>
                 </div>
                 ${hintHtml}
