@@ -1,1 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜拳認知挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+            background-color: #f0fdf4;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .correct-flash {
+            animation: flash-green 0.5s;
+        }
+        .wrong-flash {
+            animation: flash-red 0.5s;
+        }
+        @keyframes flash-green {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(34, 197, 94, 0.4); }
+        }
+        @keyframes flash-red {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(239, 68, 68, 0.4); }
+        }
+        .progress-bar-fill {
+            transition: width 0.1s linear;
+        }
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        #pause-overlay {
+            backdrop-filter: blur(4px);
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center">
 
+    <!-- 頂部資訊欄 -->
+    <div id="game-header" class="w-full max-w-2xl px-4 py-4 flex justify-between items-center bg-white shadow-md sticky top-0 z-50">
+        <div class="flex flex-col">
+            <h1 class="text-xl font-bold text-green-700">活力腦猜拳</h1>
+            <div id="game-status" class="text-xs font-medium text-gray-500">活動中...</div>
+        </div>
+        
+        <div id="game-controls-top" class="hidden flex items-center gap-2">
+            <button id="pause-btn" class="px-3 py-2 bg-amber-100 text-amber-700 rounded-xl font-bold text-sm hover:bg-amber-200 transition">
+                ⏸ 暫停
+            </button>
+            <button id="stop-btn" class="px-3 py-2 bg-red-100 text-red-700 rounded-xl font-bold text-sm hover:bg-red-200 transition">
+                ⏹ 結束
+            </button>
+        </div>
+
+        <div id="info-display" class="flex items-center gap-4">
+            <div class="text-right">
+                <div class="text-xl font-bold text-blue-600" id="timer-display">--:--</div>
+                <div class="text-xs text-gray-400">分數: <span id="score-display">0</span></div>
+            </div>
+            <button id="settings-btn" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- 自動播放進度條 -->
+    <div id="autoplay-progress" class="w-full h-2 bg-gray-100 hidden">
+        <div id="autoplay-progress-fill" class="h-full bg-blue-500 progress-bar-fill" style="width: 0%"></div>
+    </div>
+
+    <!-- 遊戲主要顯示區域 -->
+    <main id="game-area" class="flex-grow w-full max-w-4xl flex flex-col items-center justify-center p-4 relative min-h-[450px]">
+        
+        <!-- 開始畫面 -->
+        <div id="start-screen" class="text-center bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full">
+            <div class="mb-6 text-6xl">✊✋✌️</div>
+            <h2 class="text-3xl font-bold mb-4 text-gray-800">準備好了嗎？</h2>
+            <p class="text-gray-600 mb-8">訓練大腦反應，延緩老化</p>
+            <button id="start-game-btn" class="w-full py-4 bg-green-600 text-white text-2xl font-bold rounded-2xl hover:bg-green-700 shadow-lg transform active:scale-95 transition">
+                開始活動
+            </button>
+        </div>
+
+        <!-- 遊戲畫布 -->
+        <div id="stage" class="hidden w-full flex flex-col items-center justify-center gap-6 py-4 flex-grow relative">
+            <!-- 暫停遮罩 -->
+            <div id="pause-overlay" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl">
+                <div class="text-6xl mb-4">⏸</div>
+                <div class="text-3xl font-bold text-amber-700 mb-6">活動暫停中</div>
+                <button id="resume-btn" class="px-8 py-4 bg-amber-500 text-white text-xl font-bold rounded-2xl shadow-lg hover:bg-amber-600">
+                    繼續活動
+                </button>
+            </div>
+
+            <!-- 當前題數標記 (手動與自動模式均會更新此標籤) -->
+            <div id="question-index-label" class="text-lg font-bold text-blue-500 bg-blue-50 px-4 py-1 rounded-full border border-blue-200">
+                第 1 題
+            </div>
+
+            <!-- 指令提示 -->
+            <div id="instruction-banner" class="px-6 py-2 bg-yellow-100 border-2 border-yellow-400 rounded-full text-2xl font-bold text-yellow-800 animate-bounce">
+                請猜贏！
+            </div>
+
+            <!-- 題目容器 -->
+            <div id="question-container" class="w-full flex flex-wrap justify-center items-center gap-8 min-h-[350px] relative">
+                <!-- 動態插入題目 -->
+            </div>
+        </div>
+
+        <!-- 結算畫面 -->
+        <div id="result-screen" class="hidden text-center bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full">
+            <h2 class="text-4xl font-bold mb-2 text-blue-600">活動結束</h2>
+            <div class="text-6xl my-6">🏆</div>
+            <div class="text-2xl mb-2">本次得分</div>
+            <div class="text-5xl font-black text-gray-800 mb-8" id="final-score">0</div>
+            <button id="restart-btn" class="w-full py-4 bg-blue-600 text-white text-2xl font-bold rounded-2xl hover:bg-blue-700 shadow-lg transition">
+                再次活動
+            </button>
+        </div>
+    </main>
+
+    <!-- 使用者操作區 (手動模式才顯示) -->
+    <footer id="controls" class="hidden w-full max-w-2xl p-4 grid grid-cols-3 gap-4 sticky bottom-4 z-40">
+        <button data-move="rock" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-8 border-gray-300 rounded-2xl p-4 shadow-lg active:border-b-0 active:translate-y-2 transition-all">
+            <span class="text-5xl mb-2">✊</span>
+            <span class="text-xl font-bold">石頭</span>
+        </button>
+        <button data-move="scissors" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-8 border-gray-300 rounded-2xl p-4 shadow-lg active:border-b-0 active:translate-y-2 transition-all">
+            <span class="text-5xl mb-2">✌️</span>
+            <span class="text-xl font-bold">剪刀</span>
+        </button>
+        <button data-move="paper" class="gesture-btn flex flex-col items-center justify-center bg-white border-b-8 border-gray-300 rounded-2xl p-4 shadow-lg active:border-b-0 active:translate-y-2 transition-all">
+            <span class="text-5xl mb-2">✋</span>
+            <span class="text-xl font-bold">布</span>
+        </button>
+    </footer>
+
+    <!-- 設計者資訊 -->
+    <div class="w-full py-6 text-center text-gray-400 text-sm">
+        設計：<a href="https://www.facebook.com/mpotkevin" target="_blank" class="text-blue-400 hover:text-blue-500 font-medium underline underline-offset-4">職能治療師 - 鄭凱文</a>
+    </div>
+
+    <!-- 設定彈窗 -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">活動設定</h3>
+                <button id="close-settings" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">活動模式</label>
+                    <select id="setting-mode" class="w-full p-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:border-green-500 outline-none">
+                        <option value="single">單手猜拳</option>
+                        <option value="double">雙手猜拳 (左右並行)</option>
+                        <option value="limbs">上下肢猜拳 (上肢與下肢)</option>
+                        <option value="sequence">一整排連續猜拳</option>
+                        <option value="scatter">隨機分佈順序猜拳 (1->N)</option>
+                    </select>
+                </div>
+
+                <div class="bg-blue-50 p-4 rounded-2xl space-y-4 border border-blue-100">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-blue-800">自動連續播放模式</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="setting-autoplay" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    
+                    <div id="autoplay-configs" class="hidden space-y-4 pt-2 border-t border-blue-200">
+                        <div>
+                            <label class="block text-xs font-medium text-blue-700 mb-1">每題停留秒數：<span id="val-per-item">5</span>秒</label>
+                            <input type="range" id="setting-item-duration" min="1" max="10" step="1" value="5" class="w-full accent-blue-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-blue-700 mb-1">總共播放題數：<span id="val-total-items">10</span>題</label>
+                            <input type="range" id="setting-total-items" min="5" max="50" step="5" value="10" class="w-full accent-blue-600">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="manual-configs">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">目標任務</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button data-target="win" class="target-opt p-2 border-2 border-green-500 bg-green-50 rounded-xl text-green-700 font-bold">要猜贏</button>
+                            <button data-target="draw" class="target-opt p-2 border-2 border-gray-200 rounded-xl text-gray-500 font-bold">要平手</button>
+                            <button data-target="lose" class="target-opt p-2 border-2 border-gray-200 rounded-xl text-gray-500 font-bold">要猜輸</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">總挑戰時間 (秒)</label>
+                        <input type="range" id="setting-time" min="10" max="120" step="10" value="60" class="w-full h-3 bg-gray-200 rounded-lg accent-green-600">
+                        <div class="flex justify-between text-xs text-gray-500 px-1 mt-1">
+                            <span>10s</span>
+                            <span id="time-val-display" class="font-bold text-green-600">60秒</span>
+                            <span>120s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-700">顯示參考答案 (提示)</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-hints" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
+
+                <button id="save-settings" class="w-full py-4 bg-green-600 text-white text-xl font-bold rounded-xl hover:bg-green-700">儲存並關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            isPlaying: false,
+            isPaused: false,
+            score: 0,
+            timeLeft: 60,
+            timer: null,
+            mode: 'single',
+            target: 'win',
+            showHints: false,
+            isAutoplay: false,
+            itemDuration: 5,
+            totalItems: 10,
+            currentRoundCount: 0,
+            autoplayElapsed: 0,
+            currentQuestions: [],
+            currentIndex: 0,
+            lastFrameTime: 0
+        };
+
+        const MOVES = {
+            rock: { emoji: '✊', beats: 'scissors', losesTo: 'paper' },
+            scissors: { emoji: '✌️', beats: 'paper', losesTo: 'rock' },
+            paper: { emoji: '✋', beats: 'rock', losesTo: 'scissors' }
+        };
+
+        const TARGET_MAP = { win: "請猜贏！", draw: "請平手！", lose: "請猜輸！" };
+
+        const dom = {
+            startScreen: document.getElementById('start-screen'),
+            stage: document.getElementById('stage'),
+            resultScreen: document.getElementById('result-screen'),
+            controls: document.getElementById('controls'),
+            qContainer: document.getElementById('question-container'),
+            instruction: document.getElementById('instruction-banner'),
+            timerDisplay: document.getElementById('timer-display'),
+            scoreDisplay: document.getElementById('score-display'),
+            finalScore: document.getElementById('final-score'),
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsModal: document.getElementById('settings-modal'),
+            autoplayProgress: document.getElementById('autoplay-progress'),
+            autoplayProgressFill: document.getElementById('autoplay-progress-fill'),
+            pauseOverlay: document.getElementById('pause-overlay'),
+            pauseBtn: document.getElementById('pause-btn'),
+            stopBtn: document.getElementById('stop-btn'),
+            resumeBtn: document.getElementById('resume-btn'),
+            gameControlsTop: document.getElementById('game-controls-top'),
+            qIndexLabel: document.getElementById('question-index-label')
+        };
+
+        function init() {
+            document.getElementById('start-game-btn').onclick = startGame;
+            document.getElementById('restart-btn').onclick = startGame;
+            dom.settingsBtn.onclick = () => dom.settingsModal.classList.remove('hidden');
+            document.getElementById('close-settings').onclick = () => dom.settingsModal.classList.add('hidden');
+            document.getElementById('save-settings').onclick = () => dom.settingsModal.classList.add('hidden');
+            dom.pauseBtn.onclick = togglePause;
+            dom.resumeBtn.onclick = togglePause;
+            dom.stopBtn.onclick = endGame;
+
+            const autoToggle = document.getElementById('setting-autoplay');
+            autoToggle.onchange = (e) => {
+                state.isAutoplay = e.target.checked;
+                document.getElementById('autoplay-configs').classList.toggle('hidden', !state.isAutoplay);
+                document.getElementById('manual-configs').classList.toggle('hidden', state.isAutoplay);
+            };
+
+            document.getElementById('setting-item-duration').oninput = (e) => {
+                state.itemDuration = parseInt(e.target.value);
+                document.getElementById('val-per-item').innerText = state.itemDuration;
+            };
+            document.getElementById('setting-total-items').oninput = (e) => {
+                state.totalItems = parseInt(e.target.value);
+                document.getElementById('val-total-items').innerText = state.totalItems;
+            };
+            document.getElementById('setting-time').oninput = (e) => {
+                state.timeLeft = parseInt(e.target.value);
+                document.getElementById('time-val-display').innerText = state.timeLeft + '秒';
+            };
+
+            document.getElementById('setting-mode').onchange = (e) => state.mode = e.target.value;
+            document.getElementById('setting-hints').onchange = (e) => state.showHints = e.target.checked;
+
+            document.querySelectorAll('.target-opt').forEach(btn => {
+                btn.onclick = () => {
+                    state.target = btn.dataset.target;
+                    document.querySelectorAll('.target-opt').forEach(b => {
+                        b.classList.remove('border-green-500', 'bg-green-50', 'text-green-700');
+                        b.classList.add('border-gray-200', 'text-gray-500');
+                    });
+                    btn.classList.add('border-green-500', 'bg-green-50', 'text-green-700');
+                };
+            });
+
+            document.querySelectorAll('.gesture-btn').forEach(btn => {
+                btn.onclick = () => handleInput(btn.dataset.move);
+            });
+        }
+
+        function togglePause() {
+            if (!state.isPlaying) return;
+            state.isPaused = !state.isPaused;
+            dom.pauseOverlay.classList.toggle('hidden', !state.isPaused);
+            dom.pauseBtn.innerText = state.isPaused ? "▶ 繼續" : "⏸ 暫停";
+            
+            if (!state.isPaused && state.isAutoplay) {
+                state.lastFrameTime = performance.now();
+                requestAnimationFrame(updateAutoplay);
+            }
+        }
+
+        function startGame() {
+            state.isPlaying = true;
+            state.isPaused = false;
+            state.score = 0;
+            state.currentIndex = 0;
+            state.currentRoundCount = 0;
+            state.autoplayElapsed = 0;
+            
+            dom.scoreDisplay.innerText = '0';
+            dom.startScreen.classList.add('hidden');
+            dom.resultScreen.classList.add('hidden');
+            dom.stage.classList.remove('hidden');
+            dom.pauseOverlay.classList.add('hidden');
+            dom.gameControlsTop.classList.remove('hidden');
+            dom.pauseBtn.innerText = "⏸ 暫停";
+
+            if (state.isAutoplay) {
+                dom.controls.classList.add('hidden');
+                dom.autoplayProgress.classList.remove('hidden');
+                dom.timerDisplay.innerText = "自動播放";
+                nextRound();
+                state.lastFrameTime = performance.now();
+                requestAnimationFrame(updateAutoplay);
+            } else {
+                dom.controls.classList.remove('hidden');
+                dom.autoplayProgress.classList.add('hidden');
+                state.timeLeft = parseInt(document.getElementById('setting-time').value);
+                startTimer();
+                nextRound();
+            }
+        }
+
+        function startTimer() {
+            if (state.timer) clearInterval(state.timer);
+            state.timer = setInterval(() => {
+                if (state.isPaused) return;
+                state.timeLeft--;
+                const m = Math.floor(state.timeLeft / 60);
+                const s = state.timeLeft % 60;
+                dom.timerDisplay.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                if (state.timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function updateAutoplay(timestamp) {
+            if (!state.isPlaying || !state.isAutoplay || state.isPaused) return;
+
+            const deltaTime = timestamp - state.lastFrameTime;
+            state.lastFrameTime = timestamp;
+            state.autoplayElapsed += deltaTime;
+
+            const durationMs = state.itemDuration * 1000;
+            const percent = Math.min((state.autoplayElapsed / durationMs) * 100, 100);
+            dom.autoplayProgressFill.style.width = percent + '%';
+
+            if (state.autoplayElapsed >= durationMs) {
+                state.autoplayElapsed = 0;
+                if (state.currentRoundCount >= state.totalItems) {
+                    endGame();
+                    return;
+                }
+                nextRound();
+            }
+            requestAnimationFrame(updateAutoplay);
+        }
+
+        function endGame() {
+            state.isPlaying = false;
+            clearInterval(state.timer);
+            dom.stage.classList.add('hidden');
+            dom.controls.classList.add('hidden');
+            dom.autoplayProgress.classList.add('hidden');
+            dom.gameControlsTop.classList.add('hidden');
+            dom.resultScreen.classList.remove('hidden');
+            dom.finalScore.innerText = state.score;
+        }
+
+        function nextRound() {
+            if (!state.isPlaying) return;
+            
+            dom.qContainer.innerHTML = '';
+            state.currentQuestions = [];
+            state.currentIndex = 0;
+            dom.instruction.innerText = TARGET_MAP[state.target];
+
+            if (state.mode === 'limbs') {
+                dom.qContainer.classList.add('flex-col');
+                dom.qContainer.classList.remove('flex-wrap');
+            } else {
+                dom.qContainer.classList.remove('flex-col');
+                dom.qContainer.classList.add('flex-wrap');
+            }
+
+            let count = 1;
+            if (state.mode === 'double' || state.mode === 'limbs') count = 2;
+            if (state.mode === 'sequence') count = 5;
+            if (state.mode === 'scatter') count = Math.floor(Math.random() * 2) + 4;
+
+            const moveKeys = Object.keys(MOVES);
+            const gridPositions = [];
+            if (state.mode === 'scatter') {
+                const rows = 3;
+                const cols = 4;
+                for(let r=0; r<rows; r++) {
+                    for(let c=0; c<cols; c++) gridPositions.push({ x: (c*22)+5, y: (r*28)+5 });
+                }
+                shuffleArray(gridPositions);
+            }
+
+            for (let i = 0; i < count; i++) {
+                const randomMove = moveKeys[Math.floor(Math.random() * moveKeys.length)];
+                const q = {
+                    id: i,
+                    move: randomMove,
+                    answer: getCorrectAnswer(randomMove, state.target),
+                    isLimb: state.mode === 'limbs' ? (i === 1) : false,
+                    pos: state.mode === 'scatter' ? gridPositions.pop() : null
+                };
+                state.currentQuestions.push(q);
+                renderQuestion(q, i);
+            }
+
+            // 更新題目標籤 (無論模式均更新)
+            state.currentRoundCount++;
+            if (state.isAutoplay) {
+                dom.qIndexLabel.innerText = `第 ${state.currentRoundCount} 題 / 共 ${state.totalItems} 題`;
+            } else {
+                dom.qIndexLabel.innerText = `第 ${state.currentRoundCount} 回合`;
+            }
+        }
+
+        function getCorrectAnswer(cpuMove, target) {
+            if (target === 'win') return MOVES[cpuMove].losesTo;
+            if (target === 'draw') return cpuMove;
+            return MOVES[cpuMove].beats;
+        }
+
+        function renderQuestion(q, index) {
+            const card = document.createElement('div');
+            card.id = `q-${index}`;
+            card.className = "flex flex-col items-center bg-white border-4 border-gray-100 rounded-3xl p-6 shadow-md transition-all duration-300 relative";
+            
+            if (state.mode === 'scatter' && q.pos) {
+                card.classList.add('absolute');
+                card.style.left = `${q.pos.x}%`;
+                card.style.top = `${q.pos.y}%`;
+            }
+
+            let labelText = "";
+            if (state.mode === 'double') {
+                labelText = index === 0 ? "左手" : "右手";
+            } else if (state.mode === 'limbs') {
+                labelText = index === 0 ? "上肢" : "下肢";
+                if (index === 1) card.classList.add('border-blue-300');
+            }
+
+            const labelHtml = labelText 
+                ? `<div class="text-sm font-bold text-gray-500 mb-2 px-3 py-1 bg-gray-50 rounded-lg">${labelText}</div>` 
+                : '';
+
+            const numberBadge = (state.mode === 'sequence' || state.mode === 'scatter') 
+                ? `<div class="absolute -top-4 -left-4 w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-xl border-2 border-white shadow-md">${index + 1}</div>` 
+                : '';
+
+            const hintHtml = state.showHints 
+                ? `<div class="mt-4 pt-2 border-t border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-widest">目標：${MOVES[q.answer].emoji}</div>` 
+                : '';
+
+            card.innerHTML = `
+                ${numberBadge}
+                ${labelHtml}
+                <div class="text-7xl">${MOVES[q.move].emoji}</div>
+                ${hintHtml}
+            `;
+            
+            dom.qContainer.appendChild(card);
+            updateFocus();
+        }
+
+        function updateFocus() {
+            state.currentQuestions.forEach((_, i) => {
+                const el = document.getElementById(`q-${i}`);
+                if (!el) return;
+
+                if (state.isAutoplay) {
+                    el.classList.remove('opacity-40', 'border-green-500', 'scale-110', 'ring-4', 'ring-green-100');
+                    el.classList.add('opacity-100');
+                } else {
+                    if (i === state.currentIndex) {
+                        el.classList.add('border-green-500', 'scale-110', 'z-10', 'ring-4', 'ring-green-100');
+                        el.classList.remove('opacity-40');
+                    } else {
+                        el.classList.add('opacity-40');
+                        el.classList.remove('border-green-500', 'scale-110', 'ring-4');
+                    }
+                }
+            });
+        }
+
+        function handleInput(userMove) {
+            if (!state.isPlaying || state.isAutoplay || state.isPaused) return;
+
+            const currentQ = state.currentQuestions[state.currentIndex];
+            const isCorrect = userMove === currentQ.answer;
+            const targetEl = document.getElementById(`q-${state.currentIndex}`);
+
+            if (isCorrect) {
+                state.score += 10;
+                dom.scoreDisplay.innerText = state.score;
+                document.body.classList.add('correct-flash');
+                setTimeout(() => document.body.classList.remove('correct-flash'), 500);
+
+                state.currentIndex++;
+                if (state.currentIndex >= state.currentQuestions.length) {
+                    setTimeout(nextRound, 300);
+                } else {
+                    updateFocus();
+                }
+            } else {
+                state.score = Math.max(0, state.score - 5);
+                dom.scoreDisplay.innerText = state.score;
+                document.body.classList.add('wrong-flash');
+                setTimeout(() => document.body.classList.remove('wrong-flash'), 500);
+                if (targetEl) {
+                    targetEl.classList.add('animate-shake');
+                    setTimeout(() => targetEl.classList.remove('animate-shake'), 500);
+                }
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
