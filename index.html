@@ -24,6 +24,16 @@
             user-select: none;
         }
 
+        /* 換題時的彈入動畫 */
+        @keyframes pop-in {
+            0% { opacity: 0; transform: scale(0.3); }
+            70% { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
         /* 強化版閃爍回饋 */
         .correct-flash { animation: flash-green 0.4s ease-out; }
         .wrong-flash { animation: flash-red 0.4s ease-out; }
@@ -67,7 +77,6 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
 
-        /* 暫停遮罩樣式：現在完全透明，僅作為防止點擊的透明盾牌 */
         #pause-overlay {
             background-color: transparent;
             backdrop-filter: none;
@@ -124,7 +133,6 @@
 
         <!-- 遊戲舞台 -->
         <div id="stage" class="hidden w-full h-full flex flex-col items-center justify-start py-2 relative overflow-hidden">
-            <!-- 暫停遮罩：完全透明，僅用於防止玩家在暫停時誤觸題目 -->
             <div id="pause-overlay" class="hidden absolute inset-0 z-[60] rounded-3xl"></div>
 
             <!-- 抬頭資訊 -->
@@ -474,7 +482,8 @@
         function renderQuestion(q, index) {
             const card = document.createElement('div');
             card.id = `q-${index}`;
-            card.className = "flex flex-col items-center justify-between bg-white border-2 border-gray-100 shadow-xl transition-all duration-300 relative";
+            // 基礎卡片樣式：加入彈入動畫類 animate-pop-in
+            card.className = "flex flex-col items-center justify-between bg-white border-2 border-gray-100 shadow-xl transition-all duration-300 relative animate-pop-in";
             
             let emojiSize = "text-6xl";
 
@@ -496,9 +505,10 @@
             if (state.mode === 'double') labelText = index === 0 ? "左手" : "右手";
             else if (state.mode === 'limbs') labelText = index === 0 ? "上肢" : "下肢";
 
-            const labelHtml = labelText ? `<div class="w-full text-center py-1 bg-gray-100 rounded-full text-[10px] md:text-xs font-black text-gray-400 mb-1 shrink-0">${labelText}</div>` : '';
+            // 電腦版文字標籤顯著放大 (md:text-4xl, font-black)
+            const labelHtml = labelText ? `<div class="w-full text-center py-1 bg-gray-100 rounded-full text-[10px] md:text-4xl font-black text-gray-500 mb-1 md:mb-4 shrink-0">${labelText}</div>` : '';
             const numberBadge = (state.mode === 'sequence') ? `<div class="absolute -top-3 -left-3 w-8 h-8 md:w-10 md:h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black text-sm md:text-lg shadow-lg z-30 border-2 border-white">${index + 1}</div>` : '';
-            const hintHtml = state.showHints ? `<div class="w-full text-center mt-auto text-[10px] font-bold text-gray-300 border-t border-gray-50 pt-1 shrink-0">目標:${MOVES[q.answer].emoji}</div>` : '<div class="h-4 shrink-0"></div>';
+            const hintHtml = state.showHints ? `<div class="w-full text-center mt-auto text-[10px] md:text-xl font-bold text-gray-300 border-t border-gray-50 pt-1 shrink-0">目標:${MOVES[q.answer].emoji}</div>` : '<div class="h-4 shrink-0"></div>';
 
             card.innerHTML = `
                 ${numberBadge}
